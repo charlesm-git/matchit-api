@@ -1,16 +1,22 @@
+from datetime import datetime
+import re
 from typing import Optional, List
 
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from sqlalchemy import Float, Integer, String, ForeignKey
+from sqlalchemy import (
+    Boolean,
+    DateTime,
+    Float,
+    Integer,
+    String,
+    ForeignKey,
+)
 
 from models.base import Base
-from models.boulder_style import boulder_style_table
-from models.boulder_setter import boulder_setter_table
 import models.grade
-import models.area
-import models.style
-import models.user
 import models.ascent
+import models.crag
+import models.similarity
 
 
 class Boulder(Base):
@@ -19,34 +25,50 @@ class Boulder(Base):
     id: Mapped[int] = mapped_column(
         Integer, primary_key=True, autoincrement=True
     )
+    external_db_id: Mapped[int] = mapped_column(Integer)
     name: Mapped[str] = mapped_column(String)
     name_normalized: Mapped[str] = mapped_column(String)
-    grade_id: Mapped[int] = mapped_column(ForeignKey("grade.id"))
-    slash_grade_id: Mapped[Optional[int]] = mapped_column(
-        ForeignKey("grade.id"), nullable=True, default=None
-    )
-    area_id: Mapped[int] = mapped_column(ForeignKey("area.id"))
+    slug: Mapped[str] = mapped_column(String)
+
+    url: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    category: Mapped[Optional[int]] = mapped_column(
+        Integer, nullable=True
+    )  # e.g., 1 for Boulder, 0 for Route
     rating: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
-    number_of_rating: Mapped[int] = mapped_column(Integer, default=0)
-    url: Mapped[str] = mapped_column(String, unique=True)
+
+    sector_slug: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    sector_name: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    crag_slug: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    crag_name: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+
+    # Scraping status
+    scraped_ascents: Mapped[bool] = mapped_column(Boolean, default=False)
+    scraped_ascents_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime, nullable=True
+    )
+    last_ascent_scrape_attempt: Mapped[Optional[datetime]] = mapped_column(
+        DateTime, nullable=True
+    )
+    ascent_scrape_error: Mapped[Optional[str]] = mapped_column(
+        String, nullable=True
+    )
+    ascent_retry_count: Mapped[int] = mapped_column(Integer, default=0)
+
+    # Similarity matrix ID (for future use)
+    similarity_matrix_id: Mapped[Optional[int]] = mapped_column(
+        Integer, nullable=True
+    )
+
+    # Foreign Keys
+    grade_id: Mapped[int] = mapped_column(ForeignKey("grade.id"), index=True)
+    crag_id: Mapped[int] = mapped_column(ForeignKey("crag.id"), index=True)
 
     # Relationship to other entities via Foreign Keys
     grade: Mapped["models.grade.Grade"] = relationship(
         "Grade", back_populates="boulders", foreign_keys=[grade_id]
     )
-    slash_grade: Mapped[Optional["models.grade.Grade"]] = relationship(
-        "Grade", foreign_keys=[slash_grade_id]
-    )
-    area: Mapped["models.area.Area"] = relationship(
-        "Area", back_populates="boulders"
-    )
-
-    # Many-to-Many relationship to styles and setters using core tables
-    styles: Mapped[List["models.style.Style"]] = relationship(
-        secondary=boulder_style_table, back_populates="boulders"
-    )
-    setters: Mapped[List["models.user.User"]] = relationship(
-        secondary=boulder_setter_table, back_populates="set_boulders"
+    crag: Mapped["models.crag.Crag"] = relationship(
+        "Crag", back_populates="boulders"
     )
 
     # Association object for ascents
@@ -54,5 +76,34 @@ class Boulder(Base):
         "Ascent", back_populates="boulder"
     )
 
+    # Similarity relationships
+    similarities_as_id1: Mapped[List["models.similarity.Similarity"]] = (
+        relationship(
+            "Similarity", foreign_keys="[Similarity.id1]", viewonly=True
+        )
+    )
+    similarities_as_id2: Mapped[List["models.similarity.Similarity"]] = (
+        relationship(
+            "Similarity", foreign_keys="[Similarity.id2]", viewonly=True
+        )
+    )
+
     def __repr__(self):
-        return f"<Boulder(name: {self.name}, grade: {self.grade.value}, setters: {self.setters}, Ascents: {self.ascents})"
+        return f"<Boulder(name: {self.name}, grade: {self.grade.value}, Ascents: {len(self.ascents)})>"
+
+    def mark_as_scraped(self, db):
+        self.scraped_ascents = True
+        self.scraped_ascents_at = datetime.now()
+        self.ascent_scrape_error = None
+        self.ascent_retry_count = 0
+        db.add(self)
+        db.commit()
+        db.refresh(self)
+        return self
+
+    def update_last_ascent_scrape_attempt(self, db):
+        self.last_ascent_scrape_attempt = datetime.now()
+        db.add(self)
+        db.commit()
+        db.refresh(self)
+        return self
