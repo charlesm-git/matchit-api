@@ -28,9 +28,9 @@ class Country(Base):
     def get_by_slug(cls, db_session, slug: str):
         """Retrieve a Country by its slug."""
         return db_session.scalar(select(cls).where(cls.slug == slug))
-    
+
     @classmethod
-    def get_by_normalized_name(cls, db_session, name_normalized: str):
+    def get_by_name_normalized(cls, db_session, name_normalized: str):
         """Retrieve a Country by its normalized name."""
         return db_session.scalar(
             select(cls).where(cls.name_normalized == name_normalized)

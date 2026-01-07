@@ -7,27 +7,11 @@ from schemas.area import AreaCount
 
 class User(BaseModel):
     id: int
-    username: str
+    name: str
+    url: str | None = None
 
     class Config:
         from_attributes = True
-
-
-class UserDetail(User):
-    url: str
-
-
-class UserStats(BaseModel):
-    username: str
-    ascents: int
-    average_grade: Grade
-    hardest_grade: Grade
-    grade_distribution: List[GradeAscents]
-    area_distribution: List[AreaCount]
-
-    class Config:
-        from_attributes = True
-
 
 class UserBoulderCount(User):
     boulder_count: int

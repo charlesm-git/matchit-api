@@ -1,14 +1,14 @@
 from __future__ import annotations
 
-from typing import List, Union
+from typing import List
 from pydantic import BaseModel
 
 
 class Boulder(BaseModel):
     id: int
     name: str
+    name_normalized: str
     rating: float | None = None
-    number_of_rating: int = 0
     url: str
 
     class Config:
@@ -17,24 +17,22 @@ class Boulder(BaseModel):
 
 class BoulderWithFullDetail(Boulder):
     grade: "Grade"
-    slash_grade: Union["Grade", None] = None
+    crag: "Crag"
     area: "Area"
-    styles: List["Style"] = []
     ascents: List["AscentRead"] = []
     aggregated_ascents: List["AscentsPerMonthWithGeneral"] = []
 
 
-
 class BoulderWithAscentCount(Boulder):
     grade: "Grade"
-    slash_grade: Union["Grade", None] = None
-    area: Area
-    styles: List["Style"] = []
+    area: "Area"
     ascents: int
-    
+
     @classmethod
     def from_query_result(cls, boulder, ascent_count):
-        return cls.model_validate({**boulder.__dict__, "ascents": ascent_count})
+        return cls.model_validate(
+            {**boulder.__dict__, "ascents": ascent_count}
+        )
 
 
 class BoulderByGrade(BaseModel):
@@ -42,7 +40,11 @@ class BoulderByGrade(BaseModel):
     boulders: List["BoulderWithAscentCount"]
 
 
+from schemas.crag import Crag
 from schemas.area import Area
 from schemas.grade import Grade
 from schemas.ascent import AscentRead, AscentsPerMonthWithGeneral
-from schemas.style import Style
+
+BoulderWithFullDetail.model_rebuild()
+BoulderWithAscentCount.model_rebuild()
+BoulderByGrade.model_rebuild()

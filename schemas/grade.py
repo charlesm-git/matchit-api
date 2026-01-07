@@ -5,6 +5,7 @@ class Grade(BaseModel):
     id: int
     value: str
     correspondence: int
+    eightanu_correspondence: int
 
     class Config:
         from_attributes = True

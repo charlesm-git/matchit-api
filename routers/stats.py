@@ -10,13 +10,8 @@ from crud.stats import (
     get_general_statistics_home_page,
     get_areas_with_most_ascents,
     get_general_most_ascents_boulders_per_grade,
-    get_general_hardest_boulders,
     get_general_grade_distribution,
     get_general_ascents_per_grade,
-    get_ascents_volume_distribution,
-    get_general_style_distribution,
-    get_top_repeaters,
-    get_top_setters,
     get_general_ascents_per_month,
     get_general_ascents_per_year,
 )
@@ -30,8 +25,6 @@ from schemas.boulder import (
 from schemas.general import GeneralStatistics
 from schemas.grade import GradeDistribution, GradeAscents
 from schemas.ascent import AscentsPerMonth, AscentsPerYear
-from schemas.style import StyleDistribution
-from schemas.user import UserBoulderCount, UserAscentVolume
 
 router = APIRouter(prefix="/stats", tags=["stats"])
 
@@ -79,24 +72,6 @@ def read_general_most_ascents_boulders(
     return boulders
 
 
-@router.get("/boulder/hardest")
-def read_general_hardest_boulders(
-    db: Session = Depends(get_db_session), exclude_traverse: bool = False
-) -> List[Boulder]:
-    boulders = get_general_hardest_boulders(
-        db=db, exclude_traverse=exclude_traverse
-    )
-    return boulders
-
-
-@router.get("/style/distribution")
-def read_general_style_distribution(
-    db: Session = Depends(get_db_session),
-) -> List[StyleDistribution]:
-    boulders = get_general_style_distribution(db=db)
-    return boulders
-
-
 @router.get("/area/most-ascents")
 def read_general_most_ascents_areas(
     db: Session = Depends(get_db_session),
@@ -127,30 +102,6 @@ def read_general_ascents_per_grade(
 ) -> List[GradeAscents]:
     grades = get_general_ascents_per_grade(db=db)
     return grades
-
-
-@router.get("/user/top-repeater")
-def read_top_repeaters(
-    db: Session = Depends(get_db_session),
-) -> List[UserBoulderCount]:
-    boulders = get_top_repeaters(db=db)
-    return boulders
-
-
-@router.get("/user/top-setter")
-def read_top_setters(
-    db: Session = Depends(get_db_session),
-) -> List[UserBoulderCount]:
-    boulders = get_top_setters(db=db)
-    return boulders
-
-
-@router.get("/user/ascent-volume")
-def read_ascents_volume_distribution(
-    db: Session = Depends(get_db_session),
-) -> List[UserAscentVolume]:
-    boulders = get_ascents_volume_distribution(db=db)
-    return boulders
 
 
 @router.get("/time/ascent/per-month")

@@ -16,9 +16,6 @@ def get_recommended_boulder(db: Session, boulder_ids: List[int]):
             .outerjoin(Ascent, Ascent.boulder_id == Boulder.id)
             .options(
                 joinedload(Boulder.grade),
-                joinedload(Boulder.slash_grade),
-                joinedload(Boulder.area),
-                joinedload(Boulder.styles),
             )
             .group_by(Boulder.id)
         )
@@ -30,12 +27,9 @@ def get_recommended_boulder(db: Session, boulder_ids: List[int]):
             id=boulder.id,
             name=boulder.name,
             grade=boulder.grade,
-            slash_grade=boulder.slash_grade,
             rating=boulder.rating,
-            number_of_rating=boulder.number_of_rating,
             url=boulder.url,
             area=boulder.area,
-            styles=boulder.styles,
             ascents=ascents,
         )
         for boulder, ascents in result
@@ -51,9 +45,6 @@ def get_selected_boulder(db: Session, text: str):
             .outerjoin(Ascent, Ascent.boulder_id == Boulder.id)
             .options(
                 joinedload(Boulder.grade),
-                joinedload(Boulder.slash_grade),
-                joinedload(Boulder.area),
-                joinedload(Boulder.styles),
             )
             .group_by(Boulder.id)
             .limit(20)
@@ -66,12 +57,9 @@ def get_selected_boulder(db: Session, text: str):
             id=boulder.id,
             name=boulder.name,
             grade=boulder.grade,
-            slash_grade=boulder.slash_grade,
             rating=boulder.rating,
-            number_of_rating=boulder.number_of_rating,
             url=boulder.url,
             area=boulder.area,
-            styles=boulder.styles,
             ascents=ascents,
         )
         for boulder, ascents in result

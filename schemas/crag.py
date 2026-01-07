@@ -4,18 +4,14 @@ from pydantic import BaseModel
 from schemas.area import Area
 
 
-class Region(BaseModel):
+class Crag(BaseModel):
     id: int
     name: str
-
-    class Config:
-        from_attributes = True
-
-
-class RegionDetail(BaseModel):
-    id: int
-    name: str
-    areas: List[Area]
+    name_normalized: str
+    area_id: int
+    slug: str
+    url: str
+    is_synthetic: bool
 
     class Config:
         from_attributes = True

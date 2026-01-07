@@ -7,9 +7,9 @@ from pydantic import BaseModel
 class Area(BaseModel):
     id: int
     name: str
+    name_normalized: str
     url: str
-    status: str | None = None
-    region_id: int
+    country_id: int
 
     class Config:
         from_attributes = True
@@ -20,7 +20,7 @@ class AreaDetail(BaseModel):
     name: str
     url: str
     status: str | None = None
-    region: "Region"
+    region: "Crag"
 
     class Config:
         from_attributes = True
@@ -48,5 +48,5 @@ class AreaCount(BaseModel):
 
 
 from schemas.grade import Grade, GradeDistribution
-from schemas.region import Region
+from schemas.crag import Crag
 from schemas.boulder import BoulderWithAscentCount

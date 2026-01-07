@@ -1,26 +1,15 @@
 from sqlalchemy import select, func, cast, Float, case
 from sqlalchemy.orm import Session, joinedload
 from database import MONTH_LIST
-from models.boulder_style import boulder_style_table
 from models.boulder import Boulder
 from models.ascent import Ascent
-from models.style import Style
+from models.crag import Crag
 from schemas.boulder import BoulderWithFullDetail
 from schemas.ascent import AscentsPerMonthWithGeneral
 
 
-def get_all_boulders(db: Session, skip: int = 0, limit: int = 20, style=None):
-    query = select(Boulder)
-    if style:
-        query = (
-            query.where(Style.style == style)
-            .join(
-                boulder_style_table,
-                Boulder.id == boulder_style_table.c.boulder_id,
-            )
-            .join(Style, Style.id == boulder_style_table.c.style_id)
-        )
-    return db.scalars(query.offset(skip).limit(limit))
+def get_all_boulders(db: Session, skip: int = 0, limit: int = 20):
+    return db.scalars(select(Boulder).offset(skip).limit(limit)).all()
 
 
 def get_boulder(db: Session, id: int):
@@ -29,9 +18,8 @@ def get_boulder(db: Session, id: int):
         .where(Boulder.id == id)
         .options(
             joinedload(Boulder.grade),
-            joinedload(Boulder.slash_grade),
-            joinedload(Boulder.area),
-            joinedload(Boulder.styles),
+            joinedload(Boulder.crag),
+            joinedload(Boulder.crag).joinedload(Crag.area),
             joinedload(Boulder.ascents),
             joinedload(Boulder.ascents).joinedload(Ascent.user),
         )
@@ -95,13 +83,12 @@ def get_boulder(db: Session, id: int):
     return BoulderWithFullDetail(
         id=boulder.id,
         name=boulder.name,
+        name_normalized=boulder.name_normalized,
         rating=boulder.rating,
-        number_of_rating=boulder.number_of_rating,
         url=boulder.url,
+        crag=boulder.crag,
+        area=boulder.crag.area,
         grade=boulder.grade,
-        slash_grade=boulder.slash_grade,
-        area=boulder.area,
-        styles=boulder.styles,
         ascents=boulder.ascents,
         aggregated_ascents=aggregated_ascents,
     )

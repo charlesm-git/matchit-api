@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 from crud.search import search
 from database import get_db_session
 from helper import text_normalizer
-from schemas.search import SearchBoulderArea
+from schemas.search import SearchOutput
 
 
 router = APIRouter(prefix="/search", tags=["search"])
@@ -15,8 +15,8 @@ router = APIRouter(prefix="/search", tags=["search"])
 def read_research(
     q: str = "",
     db: Session = Depends(get_db_session),
-) -> SearchBoulderArea:
+) -> SearchOutput:
     if not q or not q.strip():
-        return SearchBoulderArea(boulders=[], areas=[])
-    
+        return SearchOutput(boulders=[], areas=[])
+
     return search(db=db, text=text_normalizer(q))

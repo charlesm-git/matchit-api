@@ -16,7 +16,7 @@ def get_all_areas(db: Session, skip: int = 0, limit: int = None):
 
 def get_area(db: Session, id: int):
     return db.scalar(
-        select(Area).where(Area.id == id).options(joinedload(Area.region))
+        select(Area).where(Area.id == id).options(joinedload(Area.crags))
     )
 
 
