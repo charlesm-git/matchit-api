@@ -17,6 +17,7 @@ def search(db: Session, text: str):
             .join(Ascent, Ascent.boulder_id == Boulder.id)
             .options(
                 joinedload(Boulder.grade),
+                joinedload(Boulder.crag).joinedload(Crag.area),
             )
             .group_by(Boulder.id)
             .order_by(Boulder.name)

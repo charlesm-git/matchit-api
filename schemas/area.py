@@ -8,6 +8,8 @@ class Area(BaseModel):
     id: int
     name: str
     name_normalized: str
+    slug: str
+    external_slug: str
     url: str
     country_id: int
 
@@ -18,9 +20,11 @@ class Area(BaseModel):
 class AreaDetail(BaseModel):
     id: int
     name: str
+    name_normalized: str
+    slug: str
+    external_slug: str
     url: str
-    status: str | None = None
-    region: "Crag"
+    crags: List["Crag"]
 
     class Config:
         from_attributes = True

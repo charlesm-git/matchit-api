@@ -12,6 +12,7 @@ from sqlalchemy.orm import Session, joinedload
 from database import MONTH_LIST
 from models.area import Area
 from models.boulder import Boulder
+from models.crag import Crag
 from models.grade import Grade
 from models.ascent import Ascent
 from schemas.area import AreaCount
@@ -48,60 +49,18 @@ def get_general_statistics_home_page(db: Session):
     )
 
 
-# Best rated boulders
-def get_general_best_rated_boulders_per_grade(db: Session, grade: str):
-    result = (
-        db.execute(
-            select(Boulder, func.count(Ascent.user_id).label("ascents"))
-            .where(
-                and_(
-                    Grade.value == grade,
-                    Boulder.number_of_rating >= 10,
-                    Boulder.rating >= 4.6,
-                )
-            )
-            .join(Grade, Boulder.grade_id == Grade.id)
-            .join(Ascent, Ascent.boulder_id == Boulder.id)
-            .options(
-                joinedload(Boulder.area),
-                joinedload(Boulder.styles),
-                joinedload(Boulder.grade),
-                joinedload(Boulder.slash_grade),
-            )
-            .group_by(Boulder.id)
-            .order_by(desc(Boulder.rating))
-        )
-        .unique()
-        .all()
-    )
-
-    return [
-        BoulderWithAscentCount(
-            id=boulder.id,
-            name=boulder.name,
-            grade=boulder.grade,
-            rating=boulder.rating,
-            name_normalized=boulder.name_normalized,
-            url=boulder.url,
-            ascents=ascents,
-        )
-        for boulder, ascents in result
-    ]
-
-
 def get_general_best_rated_boulders(db: Session):
     # Get all boulders with a rating above 4.6 and more than 8 recorded ratings
     boulders = (
         db.execute(
             select(Boulder, func.count(Ascent.user_id).label("ascents"))
-            .join(Ascent, Ascent.boulder_id == Boulder.id)
+            .join(Boulder.ascents)
             .options(
-                joinedload(Boulder.area),
                 joinedload(Boulder.grade),
-                joinedload(Boulder.slash_grade),
-                joinedload(Boulder.styles),
+                joinedload(Boulder.crag).joinedload(Crag.area),
             )
-            .where(and_(Boulder.rating >= 4.6, Boulder.number_of_rating >= 8))
+            .where(and_(Boulder.rating >= 4.6))
+            .having(func.count(Ascent.user_id) >= 8)
             .group_by(Boulder.id)
             .order_by(
                 desc(Boulder.rating),  # Order by grade
@@ -127,9 +86,11 @@ def get_general_best_rated_boulders(db: Session):
             BoulderWithAscentCount(
                 id=boulder.id,
                 name=boulder.name,
+                name_normalized=boulder.name_normalized,
+                crag=boulder.crag,
+                area=boulder.crag.area,
                 grade=boulder.grade,
                 rating=boulder.rating,
-                name_normalized=boulder.name_normalized,
                 url=boulder.url,
                 ascents=ascents,
             )
@@ -142,42 +103,6 @@ def get_general_best_rated_boulders(db: Session):
     ]
 
     return result
-
-
-# Most ascents boulders
-def get_general_most_ascents_boulders_per_grade(db: Session, grade: str):
-    result = (
-        db.execute(
-            select(Boulder, func.count(Ascent.user_id).label("ascents"))
-            .join(Boulder.ascents)
-            .join(Boulder.grade)
-            .options(
-                joinedload(Boulder.area),
-                joinedload(Boulder.styles),
-                joinedload(Boulder.grade),
-                joinedload(Boulder.slash_grade),
-            )
-            .where(Grade.value == grade)
-            .group_by(Ascent.boulder_id)
-            .order_by(desc("ascents"))
-            .limit(10)
-        )
-        .unique()
-        .all()
-    )
-
-    return [
-        BoulderWithAscentCount(
-            id=boulder.id,
-            name=boulder.name,
-            grade=boulder.grade,
-            rating=boulder.rating,
-            name_normalized=boulder.name_normalized,
-            url=boulder.url,
-            ascents=ascents,
-        )
-        for boulder, ascents in result
-    ]
 
 
 def get_general_most_ascents_boulders(db: Session):
@@ -206,6 +131,7 @@ def get_general_most_ascents_boulders(db: Session):
             .where(ranked_boulders.c.rank <= 10)
             .options(
                 joinedload(Boulder.grade),
+                joinedload(Boulder.crag).joinedload(Crag.area),
             )
             .order_by(
                 desc(Boulder.grade_id),  # Order by grade
@@ -234,9 +160,11 @@ def get_general_most_ascents_boulders(db: Session):
             BoulderWithAscentCount(
                 id=boulder.id,
                 name=boulder.name,
+                name_normalized=boulder.name_normalized,
+                crag=boulder.crag,
+                area=boulder.crag.area,
                 grade=boulder.grade,
                 rating=boulder.rating,
-                number_of_rating=boulder.number_of_rating,
                 url=boulder.url,
                 ascents=ascents,
             )
@@ -249,32 +177,6 @@ def get_general_most_ascents_boulders(db: Session):
     ]
 
     return result
-
-
-# Area based statistics
-def get_areas_with_most_ascents(db: Session):
-    result = db.execute(
-        select(Area, func.count(Ascent.user_id).label("ascents_count"))
-        .join(Boulder, Boulder.area_id == Area.id)
-        .join(Ascent, Ascent.boulder_id == Boulder.id)
-        .group_by(Area.id)
-        .order_by(desc("ascents_count"))
-        .limit(10)
-    ).all()
-
-    return [AreaCount(area=area, count=ascents) for area, ascents in result]
-
-
-def get_areas_with_most_boulders(db: Session):
-    result = db.execute(
-        select(Area, func.count(Boulder.id).label("boulder_count"))
-        .join(Boulder, Boulder.area_id == Area.id)
-        .group_by(Area.id)
-        .order_by(desc("boulder_count"))
-        .limit(10)
-    ).all()
-
-    return [AreaCount(area=area, count=boulders) for area, boulders in result]
 
 
 # Grade based statistics

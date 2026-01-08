@@ -1,10 +1,5 @@
-from functools import lru_cache
-
-from scipy.sparse import load_npz
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
-
-from models import ascent
 
 
 DB_PATH = "matchit.db"

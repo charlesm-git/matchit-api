@@ -25,14 +25,23 @@ class BoulderWithFullDetail(Boulder):
 
 class BoulderWithAscentCount(Boulder):
     grade: "Grade"
+    crag: "Crag"
     area: "Area"
     ascents: int
 
     @classmethod
     def from_query_result(cls, boulder, ascent_count):
         return cls.model_validate(
-            {**boulder.__dict__, "ascents": ascent_count}
+            {
+                **boulder.__dict__,
+                "area": boulder.crag.area,
+                "ascents": ascent_count,
+            }
         )
+
+
+class RecommendationOutput(BoulderWithAscentCount):
+    score: float
 
 
 class BoulderByGrade(BaseModel):

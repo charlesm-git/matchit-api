@@ -1,12 +1,12 @@
-from shlex import join
-from sqlalchemy import and_, desc, func, select
-from sqlalchemy.orm import Session, joinedload, outerjoin
+from sqlalchemy import desc, func, select
+from sqlalchemy.orm import Session, joinedload
 from models.area import Area
 from models.boulder import Boulder
+from models.crag import Crag
 from models.grade import Grade
 from models.ascent import Ascent
 from schemas.area import AreaStats
-from schemas.boulder import BoulderWithAscentCount, BoulderWithFullDetail
+from schemas.boulder import BoulderWithAscentCount
 from schemas.grade import GradeDistribution
 
 
@@ -21,7 +21,9 @@ def get_area(db: Session, id: int):
 
 
 def get_boulders_from_area(db: Session, area_id: int):
-    return db.scalars(select(Boulder).where(Boulder.area_id == area_id))
+    return db.scalars(
+        select(Boulder).join(Boulder.crag).where(Crag.area_id == area_id)
+    )
 
 
 def get_area_stats(db: Session, area_id: int):
@@ -49,19 +51,19 @@ def get_area_name_from_id(db: Session, area_id: int):
 
 def get_area_number_of_boulders(db: Session, area_id: int):
     return db.scalar(
-        select(func.count(Boulder.id)).where(Boulder.area_id == area_id)
+        select(func.count(Boulder.id))
+        .join(Boulder.crag)
+        .where(Crag.area_id == area_id)
     )
 
 
 def get_area_grade_distribution(db: Session, area_id: int):
     result = db.execute(
         select(Grade, func.count(Boulder.id))
-        .select_from(
-            outerjoin(
-                Grade,
-                Boulder,
-                (Boulder.grade_id == Grade.id) & (Boulder.area_id == area_id),
-            )
+        .select_from(Grade)
+        .outerjoin(Boulder, Boulder.grade_id == Grade.id)
+        .outerjoin(
+            Crag, (Boulder.crag_id == Crag.id) & (Crag.area_id == area_id)
         )
         .group_by(Grade.id)
     ).all()
@@ -79,15 +81,14 @@ def get_area_most_climbed_boulders(db: Session, area_id: int, limit: int = 10):
                 Boulder,
                 func.count(Ascent.user_id).label("ascents"),
             )
-            .where(Boulder.area_id == area_id)
+            .join(Boulder.crag)
+            .join(Boulder.ascents)
+            .where(Crag.area_id == area_id)
             .options(
                 joinedload(Boulder.grade),
-                joinedload(Boulder.slash_grade),
-                joinedload(Boulder.area),
-                joinedload(Boulder.styles),
+                joinedload(Boulder.crag).joinedload(Crag.area),
             )
             .order_by(desc("ascents"))
-            .join(Ascent, Boulder.id == Ascent.boulder_id)
             .group_by(Ascent.boulder_id)
             .limit(limit)
         )
@@ -104,8 +105,10 @@ def get_area_most_climbed_boulders(db: Session, area_id: int, limit: int = 10):
 def get_area_average_grade(db: Session, area_id: int):
     subquery = (
         select(func.avg(Grade.correspondence))
-        .where(Boulder.area_id == area_id)
-        .join(Boulder, Boulder.grade_id == Grade.id)
+        .select_from(Boulder)
+        .join(Boulder.grade)
+        .join(Boulder.crag)
+        .where(Crag.area_id == area_id)
     ).scalar_subquery()
 
     result = db.scalar(
@@ -120,8 +123,9 @@ def get_area_average_grade(db: Session, area_id: int):
 def get_area_total_ascents(db: Session, area_id: int):
     return db.scalar(
         select(func.count(Ascent.user_id))
-        .where(Boulder.area_id == area_id)
         .join(Boulder, Boulder.id == Ascent.boulder_id)
+        .join(Boulder.crag)
+        .where(Crag.area_id == area_id)
     )
 
 
@@ -129,20 +133,15 @@ def get_area_best_rated(db: Session, area_id: int):
     result = (
         db.execute(
             select(Boulder, func.count(Ascent.user_id).label("ascents"))
-            .filter(
-                and_(
-                    Boulder.area_id == area_id,
-                    Boulder.number_of_rating >= 5,
-                )
-            )
+            .join(Ascent, Boulder.id == Ascent.boulder_id)
+            .join(Boulder.crag)
+            .where(Crag.area_id == area_id)
             .options(
                 joinedload(Boulder.grade),
-                joinedload(Boulder.slash_grade),
-                joinedload(Boulder.area),
-                joinedload(Boulder.styles),
+                joinedload(Boulder.crag).joinedload(Crag.area),
             )
-            .join(Ascent, Boulder.id == Ascent.boulder_id)
             .group_by(Boulder.id)
+            .having(func.count(Ascent.user_id) >= 5)
             .order_by(desc(Boulder.rating))
             .limit(15)
         )
