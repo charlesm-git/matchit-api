@@ -10,6 +10,7 @@ class Boulder(BaseModel):
     name_normalized: str
     rating: float | None = None
     url: str
+    slug: str
 
     class Config:
         from_attributes = True

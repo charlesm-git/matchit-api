@@ -4,6 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from routers import (
     area,
     boulder,
+    country,
     stats,
     search,
     recommendation,
@@ -25,6 +26,7 @@ app.add_middleware(
 
 app.include_router(boulder.router)
 app.include_router(area.router)
+app.include_router(country.router)
 app.include_router(stats.router)
 app.include_router(search.router)
 app.include_router(recommendation.router)

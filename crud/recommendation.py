@@ -1,8 +1,9 @@
 from typing import List
-from sqlalchemy import desc, func, select
+from sqlalchemy import and_, desc, func, select
 from sqlalchemy.orm import Session, joinedload
 
 from helper import text_normalizer
+from models.area import Area
 from models.ascent import Ascent
 from models.boulder import Boulder
 from models.crag import Crag
@@ -51,6 +52,7 @@ def get_recommended_boulder(db: Session, boulder_ids: List[int]):
             id=boulder.id,
             name=boulder.name,
             name_normalized=boulder.name_normalized,
+            slug=boulder.slug,
             crag=boulder.crag,
             area=boulder.crag.area,
             grade=boulder.grade,
@@ -63,16 +65,24 @@ def get_recommended_boulder(db: Session, boulder_ids: List[int]):
     ]
 
 
-def get_selected_boulder(db: Session, text: str):
+def get_selected_boulder(db: Session, area_slug: str, text: str):
     normalized_text = text_normalizer(text)
     result = (
         db.execute(
             select(Boulder, func.count(Ascent.user_id).label("ascents"))
-            .where(Boulder.name_normalized.ilike(f"%{normalized_text}%"))
             .outerjoin(Ascent, Ascent.boulder_id == Boulder.id)
+            .join(Boulder.crag)
+            .join(Crag.area)
             .options(
                 joinedload(Boulder.grade),
                 joinedload(Boulder.crag).joinedload(Crag.area),
+            )
+            .where(
+                and_(
+                    Boulder.name_normalized.ilike(f"%{normalized_text}%"),
+                    Area.slug == area_slug,
+                    Boulder.ascents.any(),
+                )
             )
             .group_by(Boulder.id)
             .limit(20)
@@ -81,16 +91,6 @@ def get_selected_boulder(db: Session, text: str):
         .all()
     )
     return [
-        BoulderWithAscentCount(
-            id=boulder.id,
-            name=boulder.name,
-            name_normalized=boulder.name_normalized,
-            crag=boulder.crag,
-            area=boulder.crag.area,
-            grade=boulder.grade,
-            rating=boulder.rating,
-            url=boulder.url,
-            ascents=ascents,
-        )
+        BoulderWithAscentCount.from_query_result(boulder, ascents)
         for boulder, ascents in result
     ]

@@ -24,25 +24,25 @@ def read_areas(
     return get_all_areas(db=db, skip=skip, limit=limit)
 
 
-@router.get("/{id}")
+@router.get("/{slug}")
 def read_area(
-    id: int,
+    slug: str,
     db: Session = Depends(get_db_session),
 ) -> AreaDetail:
-    boulder = get_area(db=db, id=id)
+    boulder = get_area(db=db, slug=slug)
     return boulder
 
 
-@router.get("/{id}/boulders")
+@router.get("/{slug}/boulders")
 def read_boulders_from_area(
-    id: int, db: Session = Depends(get_db_session)
+    slug: str, db: Session = Depends(get_db_session)
 ) -> List[Boulder]:
-    boulders = get_boulders_from_area(db=db, area_id=id)
+    boulders = get_boulders_from_area(db=db, area_slug=slug)
     return boulders
 
 
-@router.get("/{id}/stats")
+@router.get("/{slug}/stats")
 def read_area_stats(
-    id: int, db: Session = Depends(get_db_session)
+    slug: str, db: Session = Depends(get_db_session)
 ) -> AreaStats:
-    return get_area_stats(db=db, area_id=id)
+    return get_area_stats(db=db, area_slug=slug)

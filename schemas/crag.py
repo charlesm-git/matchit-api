@@ -1,8 +1,4 @@
-from typing import List
 from pydantic import BaseModel
-
-from schemas.area import Area
-
 
 class Crag(BaseModel):
     id: int

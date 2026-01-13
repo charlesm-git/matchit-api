@@ -1,8 +1,4 @@
-from typing import List
 from pydantic import BaseModel
-
-from schemas.grade import Grade, GradeAscents
-from schemas.area import AreaCount
 
 
 class User(BaseModel):
