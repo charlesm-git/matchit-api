@@ -18,10 +18,10 @@ def read_boulders(
     return get_all_boulders(db=db, skip=skip, limit=limit)
 
 
-@router.get("/{id}")
+@router.get("/{slug}")
 def read_boulder(
-    id: int,
+    slug: str,
     db: Session = Depends(get_db_session),
 ) -> BoulderWithFullDetail:
-    boulder = get_boulder(db=db, id=id)
+    boulder = get_boulder(db=db, slug=slug)
     return boulder

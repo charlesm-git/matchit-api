@@ -12,10 +12,10 @@ def get_all_boulders(db: Session, skip: int = 0, limit: int = 20):
     return db.scalars(select(Boulder).offset(skip).limit(limit)).all()
 
 
-def get_boulder(db: Session, id: int):
+def get_boulder(db: Session, slug: str):
     boulder = db.scalar(
         select(Boulder)
-        .where(Boulder.id == id)
+        .where(Boulder.slug == slug)
         .options(
             joinedload(Boulder.grade),
             joinedload(Boulder.crag),
@@ -86,6 +86,7 @@ def get_boulder(db: Session, id: int):
         name_normalized=boulder.name_normalized,
         rating=boulder.rating,
         url=boulder.url,
+        slug=boulder.slug,
         crag=boulder.crag,
         area=boulder.crag.area,
         grade=boulder.grade,

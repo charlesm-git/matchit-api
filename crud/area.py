@@ -24,6 +24,59 @@ def get_area(db: Session, slug: str):
     )
 
 
+def get_area_with_counts_for_crags(db: Session, slug: str):
+    boulder_count_subq = (
+        select(func.count(Boulder.id))
+        .where(Boulder.crag_id == Crag.id)
+        .correlate(Crag)
+        .scalar_subquery()
+    ).label("boulders")
+
+    ascent_count_subq = (
+        select(func.count(Ascent.user_id))
+        .select_from(Ascent)
+        .join(Boulder, Boulder.id == Ascent.boulder_id)
+        .where(Boulder.crag_id == Crag.id)
+        .correlate(Crag)
+        .scalar_subquery()
+    ).label("ascents")
+
+    results = (
+        db.execute(
+            select(Area, Crag, boulder_count_subq, ascent_count_subq)
+            .outerjoin(Area.crags)
+            .where(Area.slug == slug)
+            .where(Crag.boulders.any())
+            .options(contains_eager(Area.crags))
+            .order_by(desc(ascent_count_subq))
+        )
+        .unique()
+        .all()
+    )
+
+    if not results:
+        return None
+
+    area = results[0][0]
+
+    # Create a mapping of crag_id to counts
+    crag_counts = {}
+    for row in results:
+        crag = row[1]
+        crag_counts[crag.id] = {
+            "boulder_count": row[2],
+            "ascent_count": row[3],
+        }
+
+    # Add counts to the already-loaded crags
+    for crag in area.crags:
+        if crag.id in crag_counts:
+            crag.boulder_count = crag_counts[crag.id]["boulder_count"]
+            crag.ascent_count = crag_counts[crag.id]["ascent_count"]
+
+    return area
+
+
 def get_boulders_from_area(db: Session, slug: str):
     return db.scalars(
         select(Boulder)
@@ -33,7 +86,7 @@ def get_boulders_from_area(db: Session, slug: str):
 
 
 def get_area_stats(db: Session, area_slug: str):
-    area = get_area(db, area_slug)
+    area = get_area_with_counts_for_crags(db, area_slug)
     number_of_boulder = get_area_number_of_boulders(db, area_slug)
     grade_distribution = get_area_grade_distribution(db, area_slug)
     most_climbed_boulders = get_area_most_climbed_boulders(db, area_slug)
@@ -81,7 +134,7 @@ def get_area_grade_distribution(db: Session, area_slug: str):
 
 
 def get_area_most_climbed_boulders(
-    db: Session, area_slug: str, limit: int = 10
+    db: Session, area_slug: str, limit: int = 20
 ):
     result = (
         db.execute(
@@ -151,7 +204,7 @@ def get_area_best_rated(db: Session, area_slug: str):
             .group_by(Boulder.id)
             .having(func.count(Ascent.user_id) >= 15)
             .order_by(desc(Boulder.rating))
-            .limit(15)
+            .limit(20)
         )
         .unique()
         .all()

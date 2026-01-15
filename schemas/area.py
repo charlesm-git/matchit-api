@@ -28,10 +28,22 @@ class AreaDetail(BaseModel):
 
     class Config:
         from_attributes = True
+        
+class AreaDetailWithCragCounts(BaseModel):
+    id: int
+    name: str
+    name_normalized: str
+    slug: str
+    external_slug: str
+    url: str
+    crags: List["CragWithCounts"]
+
+    class Config:
+        from_attributes = True
 
 
 class AreaStats(BaseModel):
-    area: "AreaDetail"
+    area: "AreaDetailWithCragCounts"
     number_of_boulders: int
     average_grade: Union["Grade", None]
     ascents: int
@@ -52,5 +64,5 @@ class AreaCount(BaseModel):
 
 
 from schemas.grade import Grade, GradeDistribution
-from schemas.crag import Crag
+from schemas.crag import Crag, CragWithCounts
 from schemas.boulder import BoulderWithAscentCount

@@ -4,6 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from routers import (
     area,
     boulder,
+    crag,
     country,
     stats,
     search,
@@ -30,3 +31,4 @@ app.include_router(country.router)
 app.include_router(stats.router)
 app.include_router(search.router)
 app.include_router(recommendation.router)
+app.include_router(crag.router)
