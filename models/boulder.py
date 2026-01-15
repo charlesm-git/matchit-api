@@ -1,5 +1,4 @@
 from datetime import datetime
-import re
 from typing import Optional, List
 
 from sqlalchemy.orm import Mapped, mapped_column, relationship

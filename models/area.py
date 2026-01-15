@@ -1,13 +1,7 @@
-from calendar import c
-from datetime import date, datetime
-from turtle import update
 from typing import Optional, List
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy import (
     Boolean,
-    Date,
-    Date,
-    DateTime,
     ForeignKey,
     String,
     Integer,

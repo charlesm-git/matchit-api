@@ -94,7 +94,7 @@ jobs:
           region: "${{ env.REGION }}"
           project_id: "${{ env.PROJECT_ID }}"
           flags: "--memory=4Gi --allow-unauthenticated --cpu-boost --timeout=600"
-          image: "${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.SERVICE }}/${{ env.SERVICE }}:${{ github.sha }}" # If required, use the Cloud Run URL output in later steps
+          image: "${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.SERVICE }}/${{ env.SERVICE }}:${{ github.sha }}"
 
       - name: "Show output"
         run: echo ${{ steps.deploy.outputs.url }}

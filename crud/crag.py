@@ -1,11 +1,9 @@
 from sqlalchemy import and_, desc, func, select
-from sqlalchemy.orm import Session, joinedload, contains_eager
-from models.area import Area
+from sqlalchemy.orm import Session, joinedload
 from models.boulder import Boulder
 from models.crag import Crag
 from models.grade import Grade
 from models.ascent import Ascent
-from schemas.area import AreaStats
 from schemas.boulder import BoulderWithAscentCount
 from schemas.crag import CragStats
 from schemas.grade import GradeDistribution

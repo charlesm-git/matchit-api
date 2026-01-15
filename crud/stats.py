@@ -15,7 +15,6 @@ from models.boulder import Boulder
 from models.crag import Crag
 from models.grade import Grade
 from models.ascent import Ascent
-from schemas.area import AreaCount
 from schemas.boulder import (
     BoulderWithAscentCount,
     BoulderByGrade,

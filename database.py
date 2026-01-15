@@ -2,7 +2,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 import os
 
-DB_PATH = os.getenv("DB_PATH", "matchit.db")
+DB_PATH = "matchit.db"
 
 DATABASE_URL = f"sqlite:///{DB_PATH}"
 engine = create_engine(DATABASE_URL, echo=False)
