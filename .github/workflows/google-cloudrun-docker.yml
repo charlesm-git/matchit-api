@@ -27,58 +27,56 @@
 #
 # 3. Change the values in the "env" block to match your values.
 
-name: 'Build and Deploy to Cloud Run'
+name: "Build and Deploy to Cloud Run"
 
 on:
   push:
     branches:
-      - 'main'
+      - "main"
 
 env:
-  PROJECT_ID: 'matchit-climbing' # TODO: update to your Google Cloud project ID
-  REGION: 'europe-west1' # TODO: update to your region
-  SERVICE: 'matchit-api' # TODO: update to your service name
-  WORKLOAD_IDENTITY_PROVIDER: 'projects/13999527716/locations/global/workloadIdentityPools/github-pool/providers/github-provider' # TODO: update to your workload identity provider
+  PROJECT_ID: "matchit-climbing" # TODO: update to your Google Cloud project ID
+  REGION: "europe-west1" # TODO: update to your region
+  SERVICE: "matchit-api" # TODO: update to your service name
+  WORKLOAD_IDENTITY_PROVIDER: "projects/13999527716/locations/global/workloadIdentityPools/github-pool/providers/github-provider" # TODO: update to your workload identity provider
 jobs:
   deploy:
-    runs-on: 'ubuntu-latest'
+    runs-on: "ubuntu-latest"
 
     permissions:
-      contents: 'read'
-      id-token: 'write'
+      contents: "read"
+      id-token: "write"
 
     steps:
-      - name: 'Checkout'
-        uses: 'actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332' # actions/checkout@v4
+      - name: "Checkout"
+        uses: "actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332" # actions/checkout@v4
 
       # Configure Workload Identity Federation and generate an access token.
-      #
       # See https://github.com/google-github-actions/auth for more options,
       # including authenticating via a JSON credentials file.
-      - id: 'auth'
-        name: 'Authenticate to Google Cloud'
-        uses: 'google-github-actions/auth@f112390a2df9932162083945e46d439060d66ec2' # google-github-actions/auth@v2
+      - id: "auth"
+        name: "Authenticate to Google Cloud"
+        uses: "google-github-actions/auth@f112390a2df9932162083945e46d439060d66ec2" # google-github-actions/auth@v2
         with:
-          workload_identity_provider: '${{ env.WORKLOAD_IDENTITY_PROVIDER }}'
-          service_account: '13999527716-compute@developer.gserviceaccount.com'
-
+          workload_identity_provider: "${{ env.WORKLOAD_IDENTITY_PROVIDER }}"
+          service_account: "13999527716-compute@developer.gserviceaccount.com"
 
       # BEGIN - Docker auth and build
       #
       # If you already have a container image, you can omit these steps.
-      - name: 'Set up Cloud SDK'
-        uses: 'google-github-actions/setup-gcloud@v2'
+      - name: "Set up Cloud SDK"
+        uses: "google-github-actions/setup-gcloud@v2"
 
-      - name: 'Configure Docker to use gcloud'
+      - name: "Configure Docker to use gcloud"
         run: |
           gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev
 
-      - name: 'Verify authentication'
+      - name: "Verify authentication"
         run: |
           gcloud auth list
           gcloud config set project ${{ env.PROJECT_ID }}
 
-      - name: 'Build and Push Container'
+      - name: "Build and Push Container"
         run: |-
           DOCKER_TAG_SHA="${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.SERVICE }}/${{ env.SERVICE }}:${{ github.sha }}"
           DOCKER_TAG_LATEST="${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.SERVICE }}/${{ env.SERVICE }}:latest"
@@ -88,16 +86,15 @@ jobs:
           docker push "${DOCKER_TAG_SHA}"
           docker push "${DOCKER_TAG_LATEST}"
 
-      - name: 'Deploy to Cloud Run'
-        uses: 'google-github-actions/deploy-cloudrun@33553064113a37d688aa6937bacbdc481580be17' # google-github-actions/deploy-cloudrun@v2
+      - name: "Deploy to Cloud Run"
+        id: "deploy"
+        uses: "google-github-actions/deploy-cloudrun@33553064113a37d688aa6937bacbdc481580be17" # google-github-actions/deploy-cloudrun@v2
         with:
-          service: '${{ env.SERVICE }}'
-          region: '${{ env.REGION }}'
-          project_id: '${{ env.PROJECT_ID }}'
-          flags: '--memory=4Gi --allow-unauthenticated --cpu-boost --timeout=600'
-          image: '${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.SERVICE }}/${{ env.SERVICE }}:${{ github.sha }}'      # If required, use the Cloud Run URL output in later steps
+          service: "${{ env.SERVICE }}"
+          region: "${{ env.REGION }}"
+          project_id: "${{ env.PROJECT_ID }}"
+          flags: "--memory=4Gi --allow-unauthenticated --cpu-boost --timeout=600"
+          image: "${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.SERVICE }}/${{ env.SERVICE }}:${{ github.sha }}" # If required, use the Cloud Run URL output in later steps
 
-      - name: 'Show output'
-        run: |2-
-
-          echo ${{ steps.deploy.outputs.url }}
+      - name: "Show output"
+        run: echo ${{ steps.deploy.outputs.url }}
