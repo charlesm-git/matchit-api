@@ -1,5 +1,5 @@
 # Dockerfile
-FROM python:3.13-alpine
+FROM python:3.13-slim
 
 # Set environment
 ENV PYTHONDONTWRITEBYTECODE=1

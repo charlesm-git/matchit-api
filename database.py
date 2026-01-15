@@ -1,8 +1,11 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
+import os
 
-
-DB_PATH = "matchit.db"
+if os.getenv("K_SERVICE"):  # Cloud Run Environment
+    DB_PATH = "/tmp/matchit.db"
+else:
+    DB_PATH = "matchit.db"
 
 DATABASE_URL = f"sqlite:///{DB_PATH}"
 engine = create_engine(DATABASE_URL, echo=False)
