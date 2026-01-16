@@ -95,6 +95,8 @@ jobs:
           project_id: "${{ env.PROJECT_ID }}"
           flags: "--memory=4Gi --allow-unauthenticated --cpu-boost --timeout=600"
           image: "${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.SERVICE }}/${{ env.SERVICE }}:${{ github.sha }}"
+          env_vars: |
+            DATABASE_URL=${{ secrets.DATABASE_URL }}
 
       - name: "Show output"
         run: echo ${{ steps.deploy.outputs.url }}
