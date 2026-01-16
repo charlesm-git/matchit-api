@@ -1,6 +1,4 @@
-from calendar import c
-from datetime import date, datetime
-from turtle import update
+from datetime import datetime
 from typing import Optional, List
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy import (
