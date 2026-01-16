@@ -97,6 +97,7 @@ jobs:
           image: "${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.SERVICE }}/${{ env.SERVICE }}:${{ github.sha }}"
           env_vars: |
             DATABASE_URL=${{ secrets.DATABASE_URL }}
+            FRONTEND_URL=${{ secrets.FRONTEND_URL }}
 
       - name: "Show output"
         run: echo ${{ steps.deploy.outputs.url }}
