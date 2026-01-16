@@ -2,9 +2,6 @@ from datetime import datetime
 from typing import Optional, List
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy import (
-    Boolean,
-    Date,
-    Date,
     DateTime,
     ForeignKey,
     String,

@@ -1,5 +1,5 @@
 from sqlalchemy import and_, desc, func, select
-from sqlalchemy.orm import Session, joinedload, contains_eager
+from sqlalchemy.orm import Session, joinedload, selectinload, contains_eager
 from models.area import Area
 from models.boulder import Boulder
 from models.crag import Crag
@@ -146,11 +146,11 @@ def get_area_most_climbed_boulders(
             .join(Boulder.ascents)
             .where(Crag.area.has(Area.slug == area_slug))
             .options(
-                joinedload(Boulder.grade),
-                joinedload(Boulder.crag).joinedload(Crag.area),
+                selectinload(Boulder.grade),
+                selectinload(Boulder.crag).selectinload(Crag.area),
             )
+            .group_by(Boulder)
             .order_by(desc("ascents"))
-            .group_by(Ascent.boulder_id)
             .limit(limit)
         )
         .unique()
@@ -198,8 +198,8 @@ def get_area_best_rated(db: Session, area_slug: str):
             .join(Boulder.crag)
             .where(Crag.area.has(Area.slug == area_slug))
             .options(
-                joinedload(Boulder.grade),
-                joinedload(Boulder.crag).joinedload(Crag.area),
+                selectinload(Boulder.grade),
+                selectinload(Boulder.crag).selectinload(Crag.area),
             )
             .group_by(Boulder.id)
             .having(func.count(Ascent.user_id) >= 15)

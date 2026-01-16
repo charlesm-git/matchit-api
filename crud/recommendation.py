@@ -1,6 +1,6 @@
 from typing import List
 from sqlalchemy import and_, desc, func, select
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import Session, selectinload
 
 from helper import text_normalizer
 from models.area import Area
@@ -25,9 +25,9 @@ def get_recommended_boulder(db: Session, boulder_ids: List[int]):
         db.execute(
             select(
                 Boulder,
-                func.coalesce(ascent_subquery.c.ascent_count, 0).label(
-                    "ascents"
-                ),
+                func.coalesce(
+                    func.max(ascent_subquery.c.ascent_count), 0
+                ).label("ascents"),
                 func.sum(Similarity.score).label("score"),
             )
             .join(Similarity, Similarity.id2 == Boulder.id)
@@ -36,10 +36,10 @@ def get_recommended_boulder(db: Session, boulder_ids: List[int]):
             )
             .where(Similarity.id1.in_(boulder_ids))
             .options(
-                joinedload(Boulder.grade),
-                joinedload(Boulder.crag).joinedload(Crag.area),
+                selectinload(Boulder.grade),
+                selectinload(Boulder.crag).selectinload(Crag.area),
             )
-            .group_by(Boulder.id)
+            .group_by(Boulder)
             .order_by(desc("score"))
             .limit(50)
         )
@@ -74,8 +74,8 @@ def get_selected_boulder(db: Session, area_slug: str, text: str):
             .join(Boulder.crag)
             .join(Crag.area)
             .options(
-                joinedload(Boulder.grade),
-                joinedload(Boulder.crag).joinedload(Crag.area),
+                selectinload(Boulder.grade),
+                selectinload(Boulder.crag).selectinload(Crag.area),
             )
             .where(
                 and_(
@@ -84,7 +84,7 @@ def get_selected_boulder(db: Session, area_slug: str, text: str):
                     Boulder.ascents.any(),
                 )
             )
-            .group_by(Boulder.id)
+            .group_by(Boulder)
             .limit(20)
         )
         .unique()

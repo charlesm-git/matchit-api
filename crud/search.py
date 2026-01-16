@@ -1,5 +1,5 @@
 from sqlalchemy import func, select
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import Session, selectinload
 
 from models.area import Area
 from models.ascent import Ascent
@@ -16,8 +16,8 @@ def search(db: Session, text: str):
             .where(Boulder.name_normalized.ilike(f"%{text}%"))
             .join(Ascent, Ascent.boulder_id == Boulder.id)
             .options(
-                joinedload(Boulder.grade),
-                joinedload(Boulder.crag).joinedload(Crag.area),
+                selectinload(Boulder.grade),
+                selectinload(Boulder.crag).selectinload(Crag.area),
             )
             .group_by(Boulder.id)
             .order_by(Boulder.name)

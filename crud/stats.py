@@ -1,6 +1,7 @@
 from datetime import date
 from sqlalchemy import (
     Float,
+    Numeric,
     and_,
     asc,
     cast,
@@ -8,7 +9,7 @@ from sqlalchemy import (
     func,
     select,
 )
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import Session, selectinload
 from database import MONTH_LIST
 from models.area import Area
 from models.boulder import Boulder
@@ -55,12 +56,12 @@ def get_general_best_rated_boulders(db: Session):
             select(Boulder, func.count(Ascent.user_id).label("ascents"))
             .join(Boulder.ascents)
             .options(
-                joinedload(Boulder.grade),
-                joinedload(Boulder.crag).joinedload(Crag.area),
+                selectinload(Boulder.grade),
+                selectinload(Boulder.crag).selectinload(Crag.area),
             )
             .where(and_(Boulder.rating >= 4.6))
             .having(func.count(Ascent.user_id) >= 8)
-            .group_by(Boulder.id)
+            .group_by(Boulder)
             .order_by(
                 desc(Boulder.rating),  # Order by grade
             )
@@ -130,8 +131,8 @@ def get_general_most_ascents_boulders(db: Session):
             .join(ranked_boulders, Boulder.id == ranked_boulders.c.id)
             .where(ranked_boulders.c.rank <= 10)
             .options(
-                joinedload(Boulder.grade),
-                joinedload(Boulder.crag).joinedload(Crag.area),
+                selectinload(Boulder.grade),
+                selectinload(Boulder.crag).selectinload(Crag.area),
             )
             .order_by(
                 desc(Boulder.grade_id),  # Order by grade
@@ -185,7 +186,7 @@ def get_general_grade_distribution(db: Session):
     result = db.execute(
         select(Grade, func.count(Boulder.id))
         .join(Boulder, Boulder.grade_id == Grade.id)
-        .group_by(Grade.correspondence)
+        .group_by(Grade)
         .order_by(asc(Grade.correspondence))
     ).all()
 
@@ -240,7 +241,7 @@ def get_general_ascents_per_month(db: Session, grade: str = None):
                 (
                     func.count(Ascent.user_id)
                     * 100
-                    / cast(total_repeats, Float)
+                    / cast(total_repeats, Numeric)
                 ),
                 1,
             ),

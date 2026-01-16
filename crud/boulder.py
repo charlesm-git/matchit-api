@@ -1,4 +1,4 @@
-from sqlalchemy import select, func, cast, Float, case
+from sqlalchemy import select, func, cast, Float, Numeric, case
 from sqlalchemy.orm import Session, joinedload
 from database import MONTH_LIST
 from models.boulder import Boulder
@@ -47,19 +47,24 @@ def get_boulder(db: Session, slug: str):
                             ),  # Handling division by 0
                             else_=(
                                 func.count(
-                                    case((Ascent.boulder_id == boulder.id, 1))
+                                    case(
+                                        (
+                                            Ascent.boulder_id == boulder.id,
+                                            1,
+                                        )
+                                    )
                                 )
                                 * 100
-                                / cast(boulder_total_repeats, Float)
+                                / cast(boulder_total_repeats, Numeric)
                             ),
                         )
-                    )
+                    ),
                 ).label("boulder"),
                 func.round(
                     (
                         func.count(Ascent.user_id)
                         * 100
-                        / cast(total_ascents, Float)
+                        / cast(total_ascents, Numeric)
                     ),
                     1,
                 ).label("general"),
@@ -71,11 +76,18 @@ def get_boulder(db: Session, slug: str):
         .all()
     )
 
+    # Convert to dict for easy lookup
+    ascents_by_month = {int(row["month"]): row for row in aggregated_ascents}
+
     aggregated_ascents = [
         AscentsPerMonthWithGeneral(
             month=MONTH_LIST[month],
-            boulder=aggregated_ascents[month]["boulder"],
-            general=aggregated_ascents[month]["general"],
+            boulder=float(
+                ascents_by_month.get(month + 1, {}).get("boulder", 0)
+            ),
+            general=float(
+                ascents_by_month.get(month + 1, {}).get("general", 0)
+            ),
         )
         for month in range(12)
     ]

@@ -1,5 +1,5 @@
 from sqlalchemy import and_, desc, func, select
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import Session, selectinload
 from models.boulder import Boulder
 from models.crag import Crag
 from models.grade import Grade
@@ -11,7 +11,7 @@ from schemas.grade import GradeDistribution
 
 def get_crag(db: Session, slug: str):
     return db.scalar(
-        select(Crag).where(Crag.slug == slug).options(joinedload(Crag.area))
+        select(Crag).where(Crag.slug == slug).options(selectinload(Crag.area))
     )
 
 
@@ -81,11 +81,11 @@ def get_crag_most_climbed_boulders(
             .join(Boulder.ascents)
             .where(Crag.slug == crag_slug)
             .options(
-                joinedload(Boulder.grade),
-                joinedload(Boulder.crag).joinedload(Crag.area),
+                selectinload(Boulder.grade),
+                selectinload(Boulder.crag).selectinload(Crag.area),
             )
             .order_by(desc("ascents"))
-            .group_by(Ascent.boulder_id)
+            .group_by(Boulder)
             .limit(limit)
         )
         .unique()
@@ -133,10 +133,10 @@ def get_crag_best_rated(db: Session, crag_slug: str):
             .join(Boulder.crag)
             .where(Crag.slug == crag_slug)
             .options(
-                joinedload(Boulder.grade),
-                joinedload(Boulder.crag).joinedload(Crag.area),
+                selectinload(Boulder.grade),
+                selectinload(Boulder.crag).selectinload(Crag.area),
             )
-            .group_by(Boulder.id)
+            .group_by(Boulder)
             .having(func.count(Ascent.user_id) >= 15)
             .order_by(desc(Boulder.rating))
             .limit(20)

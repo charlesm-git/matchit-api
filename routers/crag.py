@@ -1,5 +1,5 @@
 from typing import List
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from crud.crag import get_boulders_from_crag, get_crag, get_crag_stats
@@ -16,6 +16,8 @@ def read_crag(
     db: Session = Depends(get_db_session),
 ) -> Crag:
     crag = get_crag(db=db, slug=slug)
+    if not crag:
+        raise HTTPException(status_code=404, detail="Crag not found")
     return crag
 
 

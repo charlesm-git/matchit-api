@@ -1,5 +1,5 @@
 from typing import List
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from crud.area import (
@@ -29,8 +29,10 @@ def read_area(
     slug: str,
     db: Session = Depends(get_db_session),
 ) -> AreaDetail:
-    boulder = get_area(db=db, slug=slug)
-    return boulder
+    area = get_area(db=db, slug=slug)
+    if not area:
+        raise HTTPException(status_code=404, detail="Area not found")
+    return area
 
 
 @router.get("/{slug}/boulders")
