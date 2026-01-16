@@ -37,7 +37,7 @@ def read_area(
 def read_boulders_from_area(
     slug: str, db: Session = Depends(get_db_session)
 ) -> List[Boulder]:
-    boulders = get_boulders_from_area(db=db, area_slug=slug)
+    boulders = get_boulders_from_area(db=db, slug=slug)
     return boulders
 
 
