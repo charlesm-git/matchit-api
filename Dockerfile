@@ -12,9 +12,6 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy database
-COPY matchit.db /app/matchit.db
-
 # Copy app code
 COPY . .
 

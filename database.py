@@ -1,10 +1,18 @@
+from dotenv import load_dotenv
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
+import os
 
-DB_PATH = "matchit.db"
+load_dotenv()
 
-DATABASE_URL = f"sqlite:///{DB_PATH}"
-engine = create_engine(DATABASE_URL, echo=False)
+# Use Neon PostgreSQL in production, SQLite for local development
+DATABASE_URL = os.getenv("DATABASE_URL")
+
+engine = create_engine(
+    DATABASE_URL,
+    echo=False,
+    pool_pre_ping=True,  # Verify connections before using
+)
 
 MONTH_LIST = [
     "January",
