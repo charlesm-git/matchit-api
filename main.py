@@ -23,6 +23,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "http://127.0.0.1:8000",
+        "https://matchit-frontend-13999527716.europe-west1.run.app",
         FRONTEND_URL,
     ],
     allow_methods=["*"],
