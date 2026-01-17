@@ -62,7 +62,7 @@ class Boulder(Base):
 
     # Main boulder flag and reference for duplicate boulders
     main_boulder_id: Mapped[Optional[int]] = mapped_column(
-        Integer, nullable=True
+        ForeignKey("boulder.id"), nullable=True, index=True
     )
 
     # Foreign Keys
