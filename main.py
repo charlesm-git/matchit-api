@@ -14,6 +14,7 @@ from routers import (
     search,
     recommendation,
     auth,
+    deduplicate,
 )
 
 FRONTEND_URL = os.getenv("FRONTEND_URL")
@@ -39,3 +40,4 @@ app.include_router(search.router)
 app.include_router(recommendation.router)
 app.include_router(crag.router)
 app.include_router(auth.router)
+app.include_router(deduplicate.router)

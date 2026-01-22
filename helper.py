@@ -1,6 +1,7 @@
 import os
 import string
 import unicodedata
+from rapidfuzz import fuzz
 
 from dotenv import load_dotenv
 import jwt
@@ -11,6 +12,7 @@ from typing import Optional
 
 load_dotenv()
 
+# Text normalization function
 def text_normalizer(text: str):
     # Decompose accents
     text = unicodedata.normalize("NFD", text)
