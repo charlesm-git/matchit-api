@@ -9,6 +9,8 @@ from crud.deduplicate import (
     get_existing_duplicates,
 )
 from database import get_db_session
+from dependencies import get_current_account
+from models.account import Account
 from models.boulder import Boulder
 from schemas.deduplicate import (
     BatchMergeRequest,
@@ -27,7 +29,10 @@ from schemas.deduplicate import (
 router = APIRouter(prefix="/deduplicate", tags=["deduplicate"])
 
 
-def _boulder_to_duplicate_info(boulder: Boulder, similarity_score=None):
+def _boulder_to_duplicate_info(
+    boulder: Boulder,
+    similarity_score=None,
+):
     """Convert Boulder model to BoulderDuplicateInfo schema."""
     return BoulderDuplicateInfo(
         id=boulder.id,
@@ -45,6 +50,7 @@ def _boulder_to_duplicate_info(boulder: Boulder, similarity_score=None):
 def get_duplicate_groups(
     params: DuplicateGroupParams,
     db: Session = Depends(get_db_session),
+    account: Account = Depends(get_current_account),
 ) -> DuplicateGroupsResponse:
     """
     Find groups of potential duplicate boulders based on similarity and grade.
@@ -90,6 +96,7 @@ def get_duplicate_groups(
 def merge_duplicate_groups(
     request: BatchMergeRequest,
     db: Session = Depends(get_db_session),
+    account: Account = Depends(get_current_account),
 ) -> BatchMergeResponse:
     """
     Batch merge multiple duplicate groups in a single operation.
@@ -171,6 +178,7 @@ def get_single_boulder_duplicates(
     boulder_id: int,
     params: SingleBoulderDuplicateParams,
     db: Session = Depends(get_db_session),
+    account: Account = Depends(get_current_account),
 ) -> SingleBoulderDuplicatesResponse:
     """
     Find potential duplicates for a specific boulder using a lower similarity threshold.
@@ -181,7 +189,7 @@ def get_single_boulder_duplicates(
     target = db.scalar(select(Boulder).where(Boulder.id == boulder_id))
     if not target:
         raise HTTPException(status_code=404, detail="Boulder not found")
-    print(params)
+
     # Find potential duplicates
     candidates = find_single_boulder_duplicates(
         db=db,
@@ -214,6 +222,7 @@ def get_single_boulder_duplicates(
 def merge_single_boulder_duplicates(
     request: MergeSingleRequest,
     db: Session = Depends(get_db_session),
+    account: Account = Depends(get_current_account),
 ) -> MergeResult:
     """
     Merge selected boulders into a target boulder (single boulder workflow).
@@ -244,6 +253,7 @@ def merge_single_boulder_duplicates(
 def remove_duplicate_relationship(
     boulder_id: int,
     db: Session = Depends(get_db_session),
+    account: Account = Depends(get_current_account),
 ) -> RemoveDuplicateResponse:
     """
     Remove the duplicate relationship for a boulder (unmark it as a duplicate).
