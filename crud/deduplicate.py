@@ -9,6 +9,7 @@ from database import Session
 from models.boulder import Boulder
 from models.crag import Crag
 from models.grade import Grade
+from schemas.deduplicate import MoveAscentsResponse
 
 
 def get_boulders_for_duplicate_check(
@@ -29,8 +30,8 @@ def get_boulders_for_duplicate_check(
                 Boulder.main_boulder_id.is_(None),
                 not_(
                     or_(
-                        Boulder.name_normalized.ilike("%n.n.%"),
-                        Boulder.name_normalized.ilike("%n n%"),
+                        Boulder.name.ilike("%n.n.%"),
+                        Boulder.name.ilike("%N.N.%"),
                     )
                 ),
             )
@@ -224,7 +225,7 @@ def _find_connected_components(
 
         # Only keep groups with 2+ members
         if len(group) > 1:
-            boulder_group = [boulder_map[bid] for bid in group]
+            boulder_group = [boulder_map[boulder_id] for boulder_id in group]
             # Already sorted by ascent count from initial sort
             components.append(boulder_group)
 
@@ -379,9 +380,48 @@ def remove_duplicate_relationship(db: Session, boulder_id: int) -> Boulder:
     return boulder
 
 
-def move_ascents(db, source_boulder: Boulder, target_boulder: Boulder):
+def move_ascents_for_boulder(
+    db: Session, source_boulder: Boulder, target_boulder: Boulder
+):
     """Move all ascents from source boulder to target boulder."""
     for ascent in source_boulder.ascents:
         ascent.boulder_id = target_boulder.id
         db.add(ascent)
     db.commit()
+
+
+def move_ascents(db: Session):
+    """Move ascents from duplicate boulders to their main boulders."""
+    duplicates = db.scalars(
+        select(Boulder)
+        .options(selectinload(Boulder.ascents))
+        .where(
+            and_(Boulder.main_boulder_id.isnot(None), Boulder.ascents.any())
+        )
+    ).all()
+
+    total_ascents_moved = 0
+    failed = 0
+    main_boulder_id_not_found = set()
+
+    for duplicate in duplicates:
+        main_boulder = db.scalar(
+            select(Boulder).where(Boulder.id == duplicate.main_boulder_id)
+        )
+        if not main_boulder:
+            failed += 1
+            main_boulder_id_not_found.add(duplicate.main_boulder_id)
+            continue
+
+        for ascent in duplicate.ascents:
+            ascent.boulder_id = main_boulder.id
+            db.add(ascent)
+        total_ascents_moved += len(duplicate.ascents)
+    db.commit()
+    
+    return MoveAscentsResponse(
+        moved_ascents=total_ascents_moved,
+        duplicate_count=len(duplicates),
+        failed=failed,
+        main_boulder_ids_not_found=list(main_boulder_id_not_found),
+    )

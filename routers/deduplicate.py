@@ -7,6 +7,7 @@ from crud.deduplicate import (
     find_duplicate_groups,
     find_single_boulder_duplicates,
     get_existing_duplicates,
+    move_ascents,
 )
 from database import get_db_session
 from dependencies import get_current_account
@@ -17,10 +18,11 @@ from schemas.deduplicate import (
     BatchMergeResponse,
     BoulderDuplicateInfo,
     DuplicateGroup,
-    DuplicateGroupParams,
-    DuplicateGroupsResponse,
+    BatchDuplicateParams,
+    BatchDuplicateResponse,
+    MergeOperation,
     MergeResult,
-    MergeSingleRequest,
+    MoveAscentsResponse,
     RemoveDuplicateResponse,
     SingleBoulderDuplicateParams,
     SingleBoulderDuplicatesResponse,
@@ -46,12 +48,12 @@ def _boulder_to_duplicate_info(
     )
 
 
-@router.post("/groups")
+@router.post("/batch")
 def get_duplicate_groups(
-    params: DuplicateGroupParams,
+    params: BatchDuplicateParams,
     db: Session = Depends(get_db_session),
     account: Account = Depends(get_current_account),
-) -> DuplicateGroupsResponse:
+) -> BatchDuplicateResponse:
     """
     Find groups of potential duplicate boulders based on similarity and grade.
 
@@ -85,14 +87,14 @@ def get_duplicate_groups(
             )
         )
 
-    return DuplicateGroupsResponse(
+    return BatchDuplicateResponse(
         groups=groups,
         total_groups=len(groups),
         overlapping_boulder_ids=list(overlapping_ids),
     )
 
 
-@router.post("/groups/merge")
+@router.post("/batch/merge")
 def merge_duplicate_groups(
     request: BatchMergeRequest,
     db: Session = Depends(get_db_session),
@@ -121,7 +123,6 @@ def merge_duplicate_groups(
                     MergeResult(
                         target_boulder_id=merge_op.target_boulder_id,
                         merged_count=0,
-                        ignored_count=0,
                         success=False,
                         error=f"Target boulder {merge_op.target_boulder_id} not found",
                     )
@@ -140,11 +141,6 @@ def merge_duplicate_groups(
                 MergeResult(
                     target_boulder_id=merge_op.target_boulder_id,
                     merged_count=len(merged),
-                    ignored_count=(
-                        len(merge_op.ignore_boulder_ids)
-                        if merge_op.ignore_boulder_ids
-                        else 0
-                    ),
                     success=True,
                 )
             )
@@ -155,7 +151,6 @@ def merge_duplicate_groups(
                 MergeResult(
                     target_boulder_id=merge_op.target_boulder_id,
                     merged_count=0,
-                    ignored_count=0,
                     success=False,
                     error=str(e),
                 )
@@ -220,7 +215,7 @@ def get_single_boulder_duplicates(
 
 @router.post("/boulder/merge")
 def merge_single_boulder_duplicates(
-    request: MergeSingleRequest,
+    request: MergeOperation,
     db: Session = Depends(get_db_session),
     account: Account = Depends(get_current_account),
 ) -> MergeResult:
@@ -269,3 +264,15 @@ def remove_duplicate_relationship(
         boulder_id=boulder_id,
         message=f"Successfully removed duplicate relationship for boulder {boulder_id}",
     )
+
+
+@router.get("/move-ascents")
+def move_ascents_for_all_duplicates(
+    db: Session = Depends(get_db_session),
+    account: Account = Depends(get_current_account),
+) -> MoveAscentsResponse:
+    """
+    Move ascents from duplicate boulders to their main boulders for all duplicates in the database.
+    """
+    result = move_ascents(db=db)
+    return result

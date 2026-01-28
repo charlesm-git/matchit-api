@@ -65,13 +65,20 @@ def login(
     return {"access_token": access_token, "token_type": "bearer"}
 
 
-@router.get("/me")
-def get_current_user(
+@router.get("/verify")
+def verify_token(
     account: Account = Depends(get_current_account),
 ) -> AccountResponse:
     """
-    Get current authenticated account information.
+    Verify JWT token and return account information.
 
     Requires valid JWT token in Authorization header.
     """
-    return account
+    if not account:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or expired token",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    else:
+        return account

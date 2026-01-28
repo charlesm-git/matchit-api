@@ -1,5 +1,5 @@
 from sqlalchemy import and_, desc, func, select
-from sqlalchemy.orm import Session, joinedload, selectinload, contains_eager
+from sqlalchemy.orm import Session, selectinload, contains_eager
 from models.area import Area
 from models.boulder import Boulder
 from models.crag import Crag
@@ -11,7 +11,9 @@ from schemas.grade import GradeDistribution
 
 
 def get_all_areas(db: Session, skip: int = 0, limit: int = None):
-    return db.scalars(select(Area).offset(skip).limit(limit))
+    return db.scalars(
+        select(Area).offset(skip).limit(limit).order_by(Area.name)
+    ).all()
 
 
 def get_area(db: Session, slug: str):
@@ -125,6 +127,7 @@ def get_area_grade_distribution(db: Session, area_slug: str):
         .outerjoin(Area, Crag.area_id == Area.id)
         .where(and_(Grade.correspondence >= 12, Area.slug == area_slug))
         .group_by(Grade.id)
+        .order_by(Grade.correspondence)
     ).all()
 
     return [

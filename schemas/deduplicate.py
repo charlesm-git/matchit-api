@@ -2,7 +2,7 @@ from typing import List, Optional
 from pydantic import BaseModel, Field
 
 
-class DuplicateGroupParams(BaseModel):
+class BatchDuplicateParams(BaseModel):
     """Parameters for finding duplicate groups."""
 
     area_slug: Optional[str] = None
@@ -35,7 +35,7 @@ class DuplicateGroup(BaseModel):
     has_conflicts: bool = False
 
 
-class DuplicateGroupsResponse(BaseModel):
+class BatchDuplicateResponse(BaseModel):
     """Response containing all duplicate groups."""
 
     groups: List[DuplicateGroup]
@@ -48,7 +48,6 @@ class MergeOperation(BaseModel):
 
     target_boulder_id: int
     duplicate_boulder_ids: List[int]
-    ignore_boulder_ids: Optional[List[int]] = []
 
 
 class BatchMergeRequest(BaseModel):
@@ -62,7 +61,6 @@ class MergeResult(BaseModel):
 
     target_boulder_id: int
     merged_count: int
-    ignored_count: int
     success: bool
     error: Optional[str] = None
 
@@ -97,13 +95,6 @@ class SingleBoulderDuplicatesResponse(BaseModel):
     existing_duplicates: List[BoulderDuplicateInfo]
 
 
-class MergeSingleRequest(BaseModel):
-    """Request to merge specific boulders to a target."""
-
-    target_boulder_id: int
-    duplicate_boulder_ids: List[int]
-
-
 class RemoveDuplicateRequest(BaseModel):
     """Request to remove duplicate relationship."""
 
@@ -115,3 +106,12 @@ class RemoveDuplicateResponse(BaseModel):
 
     boulder_id: int
     message: str
+
+
+class MoveAscentsResponse(BaseModel):
+    """Response after moving ascents from duplicates to main boulders."""
+
+    moved_ascents: int
+    duplicate_count: int
+    failed: int
+    main_boulder_ids_not_found: List[int]
