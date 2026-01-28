@@ -1,9 +1,11 @@
+from typing import List
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from crud.deduplicate import (
     deduplicate_boulders,
+    delete_duplicate_relationship,
     find_duplicate_groups,
     find_single_boulder_duplicates,
     get_existing_duplicates,
@@ -23,6 +25,7 @@ from schemas.deduplicate import (
     MergeOperation,
     MergeResult,
     MoveAscentsResponse,
+    RemoveDuplicateRequest,
     RemoveDuplicateResponse,
     SingleBoulderDuplicateParams,
     SingleBoulderDuplicatesResponse,
@@ -166,6 +169,55 @@ def merge_duplicate_groups(
     )
 
 
+@router.post("/boulder/merge")
+def merge_single_boulder_duplicates(
+    request: MergeOperation,
+    db: Session = Depends(get_db_session),
+    account: Account = Depends(get_current_account),
+) -> MergeResult:
+    """
+    Merge selected boulders into a target boulder (single boulder workflow).
+    """
+    target = db.scalar(
+        select(Boulder).where(Boulder.id == request.target_boulder_id)
+    )
+    if not target:
+        raise HTTPException(status_code=404, detail="Target boulder not found")
+
+    merged = deduplicate_boulders(
+        db=db,
+        target=request.target_boulder_id,
+        duplicates=request.duplicate_boulder_ids,
+    )
+
+    return MergeResult(
+        target_boulder_id=request.target_boulder_id,
+        merged_count=len(merged),
+        success=True,
+    )
+
+
+@router.post(
+    "/boulder/delete-duplicates",
+)
+def remove_duplicate_relationship_endpoint(
+    request: RemoveDuplicateRequest,
+    db: Session = Depends(get_db_session),
+    account: Account = Depends(get_current_account),
+) -> RemoveDuplicateResponse:
+    """
+    Remove the duplicate relationship for a boulder (unmark it as a duplicate).
+
+    This sets main_boulder_id back to NULL, restoring the boulder as an independent entry.
+    """
+    delete_duplicate_relationship(db=db, boulder_ids=request.boulder_ids)
+
+    return RemoveDuplicateResponse(
+        boulder_ids=request.boulder_ids,
+        message=f"Successfully removed duplicate relationship for boulders {request.boulder_ids}",
+    )
+
+
 @router.post(
     "/boulder/{boulder_id}",
 )
@@ -210,59 +262,6 @@ def get_single_boulder_duplicates(
         boulder_name=target.name,
         candidates=candidate_infos,
         existing_duplicates=existing_infos,
-    )
-
-
-@router.post("/boulder/merge")
-def merge_single_boulder_duplicates(
-    request: MergeOperation,
-    db: Session = Depends(get_db_session),
-    account: Account = Depends(get_current_account),
-) -> MergeResult:
-    """
-    Merge selected boulders into a target boulder (single boulder workflow).
-    """
-    target = db.scalar(
-        select(Boulder).where(Boulder.id == request.target_boulder_id)
-    )
-    if not target:
-        raise HTTPException(status_code=404, detail="Target boulder not found")
-
-    merged = deduplicate_boulders(
-        db=db,
-        target=request.target_boulder_id,
-        duplicates=request.duplicate_boulder_ids,
-    )
-
-    return MergeResult(
-        target_boulder_id=request.target_boulder_id,
-        merged_count=len(merged),
-        ignored_count=0,
-        success=True,
-    )
-
-
-@router.delete(
-    "/boulder/{boulder_id}/duplicate",
-)
-def remove_duplicate_relationship(
-    boulder_id: int,
-    db: Session = Depends(get_db_session),
-    account: Account = Depends(get_current_account),
-) -> RemoveDuplicateResponse:
-    """
-    Remove the duplicate relationship for a boulder (unmark it as a duplicate).
-
-    This sets main_boulder_id back to NULL, restoring the boulder as an independent entry.
-    """
-    boulder = remove_duplicate_relationship(db=db, boulder_id=boulder_id)
-
-    if not boulder:
-        raise HTTPException(status_code=404, detail="Boulder not found")
-
-    return RemoveDuplicateResponse(
-        boulder_id=boulder_id,
-        message=f"Successfully removed duplicate relationship for boulder {boulder_id}",
     )
 
 

@@ -89,22 +89,20 @@ class SingleBoulderDuplicateParams(BaseModel):
 class SingleBoulderDuplicatesResponse(BaseModel):
     """Response with potential duplicates for a single boulder."""
 
-    boulder_id: int
-    boulder_name: str
     candidates: List[BoulderDuplicateInfo]
     existing_duplicates: List[BoulderDuplicateInfo]
 
 
 class RemoveDuplicateRequest(BaseModel):
-    """Request to remove duplicate relationship."""
+    """Request to remove duplicate relationship from boulders."""
 
-    boulder_id: int
+    boulder_ids: List[int]
 
 
 class RemoveDuplicateResponse(BaseModel):
     """Response after removing duplicate relationship."""
 
-    boulder_id: int
+    boulder_ids: List[int]
     message: str
 
 

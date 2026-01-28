@@ -284,6 +284,7 @@ def find_single_boulder_duplicates(
                 Boulder.main_boulder_id.is_(
                     None
                 ),  # Not already marked as duplicate
+                Crag.area_id == target.crag.area_id,
                 Grade.correspondence.between(
                     target.grade.correspondence - grade_tolerance,
                     target.grade.correspondence + grade_tolerance,
@@ -360,7 +361,7 @@ def get_existing_duplicates(db: Session, boulder_id: int) -> List[Boulder]:
     return duplicates
 
 
-def remove_duplicate_relationship(db: Session, boulder_id: int) -> Boulder:
+def delete_duplicate_relationship(db: Session, boulder_ids: List[int]) -> List[Boulder]:
     """
     Remove the duplicate relationship for a boulder (unmark as duplicate).
 
@@ -371,13 +372,11 @@ def remove_duplicate_relationship(db: Session, boulder_id: int) -> Boulder:
     Returns:
         The updated boulder
     """
-    boulder = db.scalar(select(Boulder).where(Boulder.id == boulder_id))
-    if boulder:
+    boulders = db.scalars(select(Boulder).where(Boulder.id.in_(boulder_ids))).all()
+    for boulder in boulders:
         boulder.main_boulder_id = None
         db.add(boulder)
-        db.commit()
-        db.refresh(boulder)
-    return boulder
+    db.commit()
 
 
 def move_ascents_for_boulder(
